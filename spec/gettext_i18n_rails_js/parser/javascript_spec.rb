@@ -45,6 +45,14 @@ describe GettextI18nRailsJs::Parser::Javascript do
       expect(parser.target?("foo/bar/xxx.jsx")).to be_truthy
     end
 
+    it "targets .ts" do
+      expect(parser.target?("foo/bar/xxx.ts")).to be_truthy
+    end
+
+    it "targets .tsx" do
+      expect(parser.target?("foo/bar/xxx.tsx")).to be_truthy
+    end
+
     it "does not target cows" do
       expect(parser.target?("foo/bar/xxx.cows")).to be_falsey
     end
@@ -358,6 +366,57 @@ describe GettextI18nRailsJs::Parser::Javascript do
             ["new-trans", "#{example}:9"],
             ["namespaced\004trans", "#{example}:10"],
             ["Hello\\nBuddy", "#{example}:11"]
+          ]
+        )
+      )
+    end
+
+    it "accepts changing the translate method" do
+      parser.gettext_function = "gettext"
+
+      content = <<-'EOF'
+        <template><div>{{ gettext('name') }}</div></template>
+        <script>var string = \"this\" + gettext('json') + 'should be translated';</script>
+      EOF
+
+      with_file content do |path|
+        expect(parser.parse(path, [])).to(
+          eq(
+            [
+              ["name", "#{path}:1"],
+              ["json", "#{path}:2"]
+            ]
+          )
+        )
+      end
+
+      parser.gettext_function = "__"
+    end
+  end
+
+  describe "parses typescript files" do
+    let(:example) do
+      File.expand_path(
+        "../../../fixtures/example.ts",
+        __FILE__
+      )
+    end
+
+    let(:parsed_example) do
+      parser.parse(example, [])
+    end
+
+    it "parses all translations" do
+      expect(parsed_example).to(
+        eq(
+          [
+            ["json", "#{example}:2"],
+            ["item\000items", "#{example}:3"],
+            ["Hello {yourname}", "#{example}:6"],
+            ["new-trans", "#{example}:9"],
+            ["namespaced\004trans", "#{example}:10"],
+            ["Hello\\nBuddy", "#{example}:11"],
+            ["test uniq script", "#{example}:12"]
           ]
         )
       )
